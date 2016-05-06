@@ -1,0 +1,140 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ *
+ * @return array
+ */
+function leafletmaputils_menu()
+{
+    $items = array();
+
+    // Admin homepage
+    $items['admin/config/leafletmaputils'] = array(
+        'title' => 'Leaflet Map Settings',
+        'description' => 'Configure the default leaflet map settings.',
+        'page callback' => 'drupal_get_form',
+        'access arguments' => array('leafletmaputils'),
+        'page arguments' => array('leafletmaputils_config_form'),
+        'file' => 'leafletmaputils.admin.inc',
+        'file path' => drupal_get_path('module', 'leafletmaputils'),
+    );
+
+    return $items;
+}
+
+/**
+ * Implements hook_permission()
+ * 
+ * @return array
+ */
+function toccmaputils_permission()
+{
+    return array(
+        'leafletmaputils' => array(
+            'title' => 'Allow Leaflet map utils admin access'
+        )
+    );
+}
+
+/**
+ * After build event for this form
+ *
+ * Adds in the JS and CSS required to display the Google map with draggable
+ * placeholder
+ *
+ * @return array
+ */
+function leafletmaputils_mapadmin($form, &$form_state)
+{
+    leafletmaputils_attach_scripts($form);
+
+    $path = drupal_get_path('module', 'leafletmaputils');
+    $form['#attached']['js'][] = $path . '/js/leafletAdminMap.js';
+    $form['#attached']['css'][] = $path . '/css/leafletmaputils_map_admin.css';
+
+    return $form;
+}
+
+/**
+ * Attach the map scripts to a render element
+ *
+ * @param array $element Form or block to attach scripts too.
+ * 
+ * @return void
+ */
+function leafletmaputils_attach_scripts(&$element)
+{
+    $path = drupal_get_path('module', 'leafletmaputils');
+    
+    $element['#attached']['js'][$path . '/js/AwBase.js'] = array(
+        'weight' => -4,
+        'scope' => 'footer',
+        'defer' => true
+    );
+    
+    $element['#attached']['js'][$path . '/js/leaflet.0.7.3.min.js'] = array(
+        'weight' => -3,
+        'scope' => 'footer',
+        'defer' => true
+    );
+    $element['#attached']['js'][$path . '/js/leafletMap.js'] = array(
+        'weight' => -2,
+        'scope' => 'footer',
+        'defer' => true
+    );
+    $element['#attached']['js'][$path . '/js/markercluster.leaflet.js'] = array(
+        'weight' => -1,
+        'scope' => 'footer',
+        'defer' => true
+    );
+    $element['#attached']['js'][$path . '/js/leafletClusterMap.js'] = array(
+        'weight' => -1,
+        'scope' => 'footer',
+        'defer' => true
+    );
+    $element['#attached']['js'][$path . '/js/leafletMapBehaviors.js'] = array(
+        'weight' => 0,
+        'scope' => 'footer',
+        'defer' => true
+    );
+    $element['#attached']['js'][] = array(
+        'data' => array(
+            'leafletmaputils' => array(
+                'tileroot' => variable_get('leafletmaputils_tile_url', ''),
+                'minZoom' => variable_get('leafletmaputils_minZoom', ''),
+                'maxZoom' => variable_get('leafletmaputils_maxZoom', '')
+            )
+        ),
+        'type' => 'setting'
+    );
+    $element['#attached']['css'][$path . '/css/leaflet.0.7.3.css'] = array(
+        'weight' => 0
+    );
+    $element['#attached']['css'][$path . '/css/MarkerCluster.css'] = array(
+        'weight' => 1
+    );
+    $element['#attached']['css'][$path . '/css/MarkerCluster.default.css'] = array(
+        'weight' => 3
+    );
+    $element['#attached']['css'][$path . '/css/leafletMapUtils.default.css'] = array(
+        'weight' => 2
+    );
+}
+
+/**
+ * Function used to append a position picker element onto a specified element.
+ *
+ * @return void
+ */
+function leafletmaputils_add_map_control(&$form, $latFieldName, $lngFieldName)
+{
+    $language = $form['language']['#value'];
+    foreach ($form_state['field'] as $field => $field_contents) {
+        if ($field == $latFieldName) {
+            $form[$field][$language]['#suffix'] = '<div id="leafletmaputils_mappicker" data-longfield="edit-tocccontactus-long-und-0-value" data-latfield="edit-tocccontactus-lat-und-0-value"></div>';
+            $form[$field][$language]['#suffix'] .= '<p>Drag the map pin to change the office location or add the long / lat in manually above.</p>';
+            $form["#after_build"][] = "leafletmaputils_mapadmin";
+        }
+    }
+}
